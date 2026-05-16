@@ -1,0 +1,640 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL") 
+}
+
+enum UserRole {
+  admin
+  user
+}
+
+enum UserStatus {
+  pending_verification
+  active
+  locked
+  banned
+}
+
+enum VerificationType {
+  email_link
+  phone_otp
+}
+
+enum CategoryGroupStatus {
+  active
+  hidden
+}
+
+enum VerificationPurpose {
+  register
+  forgot_password
+  change_email
+  change_phone
+}
+
+enum VerificationStatus {
+  pending
+  verified
+  expired
+  cancelled
+}
+
+enum SellerRequestStatus {
+  pending
+  approved
+  rejected
+}
+
+enum SellerStatus {
+  active
+  suspended
+}
+
+enum GameStatus {
+  active
+  hidden
+}
+
+enum AccountPostedByType {
+  admin
+  seller
+}
+
+enum AccountStatus {
+  available
+  pending_handover
+  sold
+  hidden
+}
+
+enum AccountApprovalStatus {
+  approved
+  pending_review
+  rejected
+}
+
+enum WalletStatus {
+  active
+  locked
+}
+
+enum WalletTransactionType {
+  deposit
+  purchase
+  refund
+  adjustment
+}
+
+enum WalletTransactionDirection {
+  credit
+  debit
+}
+
+enum WalletTransactionRelatedType {
+  deposit_request
+  order
+  admin_adjustment
+  refund
+}
+
+enum DepositRequestStatus {
+  pending
+  paid
+  cancelled
+  expired
+  rejected
+}
+
+enum DepositMethod {
+  bank_transfer
+}
+
+enum OrderStatus {
+  pending_handover
+  handing_over
+  completed
+  cancelled
+  refunded
+}
+
+enum OrderPaymentStatus {
+  paid
+  refunded
+}
+
+enum OrderPaymentMethod {
+  wallet
+}
+
+enum OrderItemStatus {
+  pending_handover
+  handed_over
+  completed
+  refunded
+  cancelled
+}
+
+enum HandoverChannel {
+  zalo
+  phone
+  telegram
+  facebook
+}
+
+enum HandoverStatus {
+  pending
+  contacted
+  delivered
+  failed
+  disputed
+}
+
+model User {
+  id              String     @id @default(uuid())
+  email           String?    @unique
+  phone           String?    @unique
+  passwordHash    String
+  fullName        String?
+  username        String?    @unique
+  avatarUrl       String?
+  zaloPhone       String?
+  zaloName        String?
+  role            UserRole   @default(user)
+  status          UserStatus @default(pending_verification)
+  emailVerifiedAt DateTime?
+  phoneVerifiedAt DateTime?
+  lastLoginAt     DateTime?
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+  deletedAt       DateTime?
+
+  sellerRequests       SellerRequest[]
+  seller               Seller?
+  wallet               Wallet?
+  depositRequests      DepositRequest[]
+  orders               Order[]
+  boughtAccounts       GameAccount[]       @relation("BuyerAccounts")
+  handoverLogs         HandoverLog[]       @relation("AdminHandovers")
+  auditLogs            AuditLog[]          @relation("ActorAuditLogs")
+  createdVerifications Verification[]
+  createdWalletTxns    WalletTransaction[] @relation("AdminCreatedWalletTransactions")
+
+  walletTransactions WalletTransaction[]
+  reviews            Review[]
+
+  @@index([status])
+  @@index([role])
+  @@index([createdAt])
+}
+
+model Verification {
+  id         String              @id @default(uuid())
+  userID     String
+  type       VerificationType
+  purpose    VerificationPurpose
+  target     String
+  tokenHash  String
+  expiresAt  DateTime
+  verifiedAt DateTime?
+  status     VerificationStatus  @default(pending)
+  createdAt  DateTime            @default(now())
+
+  user User @relation(fields: [userID], references: [id], onDelete: Cascade)
+
+  @@index([userID, createdAt])
+  @@index([target, purpose])
+  @@index([status, expiresAt])
+}
+
+model SellerRequest {
+  id                String              @id @default(uuid())
+  userID            String
+  fullName          String?
+  phone             String?
+  zaloPhone         String?
+  bankAccountName   String?
+  bankAccountNumber String?
+  bankName          String?
+  note              String?
+  status            SellerRequestStatus @default(pending)
+  reviewedBy        String?
+  reviewedAt        DateTime?
+  rejectReason      String?
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+
+  user   User    @relation(fields: [userID], references: [id], onDelete: Cascade)
+  seller Seller?
+
+  @@index([userID, createdAt])
+  @@index([status, createdAt])
+}
+
+model Seller {
+  id                String       @id @default(uuid())
+  userID            String       @unique
+  requestID         String?      @unique
+  shopName          String
+  slug              String       @unique
+  description       String?
+  bankAccountName   String?
+  bankAccountNumber String?
+  bankName          String?
+  status            SellerStatus @default(active)
+  approvedBy        String?
+  approvedAt        DateTime?
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  user         User           @relation(fields: [userID], references: [id], onDelete: Cascade)
+  request      SellerRequest? @relation(fields: [requestID], references: [id])
+  gameAccounts GameAccount[]
+  orders       Order[]
+
+  @@index([status])
+  @@index([createdAt])
+}
+
+model Game {
+  id           String     @id @default(uuid())
+  name         String     @unique
+  slug         String     @unique
+  thumbnailUrl String?
+  description  String?
+
+  priority     Int        @default(0)
+
+  status       GameStatus @default(active)
+
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  accounts     GameAccount[]
+  groups       CategoryGroup[]
+
+  @@index([status])
+  @@index([priority])
+  @@index([createdAt])
+}
+
+model CategoryGroup {
+  id          String   @id @default(uuid())
+
+  gameID      String
+
+  name        String
+
+  slug        String
+
+  thumbnailUrl String?
+
+  priority    Int      @default(0)
+
+  description String?
+
+  status      CategoryGroupStatus @default(active)
+
+  content     String?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  game        Game @relation(fields: [gameID], references: [id], onDelete: Cascade)
+
+  accounts    GameAccount[]
+
+  @@unique([gameID, slug])
+
+  @@index([gameID])
+  @@index([priority])
+}
+
+model GameAccount {
+  id String @id @default(uuid())
+
+  // relations
+  gameID String
+  groupID String?
+  sellerID String?
+  buyerUserID String?
+
+  // product
+  productName String
+
+  categoryGroup String?
+
+  productCode String @unique
+
+  slug String @unique
+
+  thumbnailUrl String? 
+
+  description String?
+
+  detailInfo String?
+
+  accountInfo String?
+
+  productType String? @default("Mặc định")
+
+  // price
+  price Decimal @db.Decimal(15, 2)
+
+  salePrice Decimal? @db.Decimal(15, 2)
+
+  discountPercent Int? @default(0)
+
+  currency String @default("VND")
+
+  // status
+  status AccountStatus @default(available)
+
+  postedByType AccountPostedByType @default(admin)
+
+  approvalStatus AccountApprovalStatus @default(approved)
+
+  // time
+  createdAt DateTime @default(now())
+
+  updatedAt DateTime @updatedAt
+
+  // relations
+  group CategoryGroup? @relation(fields: [groupID], references: [id])
+
+  seller Seller? @relation(fields: [sellerID], references: [id])
+
+  buyer User? @relation("BuyerAccounts", fields: [buyerUserID], references: [id])
+
+  game Game @relation(fields: [gameID], references: [id])
+
+  images GameAccountImage[]
+
+  orderItems OrderItem[]
+
+  handoverLogs HandoverLog[]
+
+  reviews Review[]
+
+  @@index([gameID])
+  @@index([groupID])
+  @@index([sellerID])
+  @@index([buyerUserID])
+  @@index([status])
+  @@index([price])
+  @@index([createdAt])
+}
+
+model GameAccountImage {
+  id String @id @default(uuid())
+
+  accountID String
+
+  imageUrl String
+
+  publicId String?
+
+  isPrimary Boolean @default(false)
+
+  sortOrder Int @default(0)
+
+  createdAt DateTime @default(now())
+
+  account GameAccount @relation(fields: [accountID], references: [id], onDelete: Cascade)
+
+  @@index([accountID, sortOrder])
+}
+
+model Wallet {
+  id           String       @id @default(uuid())
+  userID       String       @unique
+  balance      Decimal      @default(0) @db.Decimal(15, 2)
+  totalDeposit Decimal      @default(0) @db.Decimal(15, 2)
+  totalSpent   Decimal      @default(0) @db.Decimal(15, 2)
+  status       WalletStatus @default(active)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  user         User                @relation(fields: [userID], references: [id], onDelete: Cascade)
+  transactions WalletTransaction[]
+
+  @@index([status])
+}
+
+model WalletTransaction {
+  id               String                        @id @default(uuid())
+  walletID         String
+  userID           String
+  txnCode          String                        @unique
+  txnType          WalletTransactionType
+  direction        WalletTransactionDirection
+  amount           Decimal                       @db.Decimal(15, 2)
+  balanceBefore    Decimal                       @db.Decimal(15, 2)
+  balanceAfter     Decimal                       @db.Decimal(15, 2)
+  relatedType      WalletTransactionRelatedType?
+  relatedID        String?
+  note             String?
+  createdByAdminID String?
+  createdAt        DateTime                      @default(now())
+
+  wallet         Wallet @relation(fields: [walletID], references: [id], onDelete: Cascade)
+  user           User   @relation(fields: [userID], references: [id], onDelete: Cascade)
+  createdByAdmin User?  @relation("AdminCreatedWalletTransactions", fields: [createdByAdminID], references: [id])
+
+  @@index([userID, createdAt])
+  @@index([walletID, createdAt])
+  @@index([relatedType, relatedID])
+  @@index([createdByAdminID])
+}
+
+model DepositRequest {
+  id                 String               @id @default(uuid())
+  userID             String
+  depositCode        String               @unique
+  amount             Decimal              @db.Decimal(15, 2)
+  currency           String               @default("VND")
+  method             DepositMethod        @default(bank_transfer)
+  bankName           String
+  bankAccountName    String
+  bankAccountNumber  String
+  transferContent    String               @unique
+  status             DepositRequestStatus @default(pending)
+  paidAt             DateTime?
+  expiredAt          DateTime?
+  note               String?
+  rawPayload         Json?
+  confirmedByAdminID String?
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+
+  user User @relation(fields: [userID], references: [id], onDelete: Cascade)
+
+  @@index([userID, createdAt])
+  @@index([status, createdAt])
+  @@index([expiredAt])
+}
+
+model Order {
+  id            String             @id @default(uuid())
+  orderCode     String             @unique
+  userID        String
+  sellerID      String?
+  totalAmount   Decimal            @db.Decimal(15, 2)
+  currency      String             @default("VND")
+  paymentMethod OrderPaymentMethod @default(wallet)
+  paymentStatus OrderPaymentStatus @default(paid)
+  status        OrderStatus        @default(pending_handover)
+  buyerNote     String?
+  adminNote     String?
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+  completedAt   DateTime?
+  cancelledAt   DateTime?
+
+  user         User          @relation(fields: [userID], references: [id])
+  seller       Seller?       @relation(fields: [sellerID], references: [id])
+  items        OrderItem[]
+  handoverLogs HandoverLog[]
+
+  @@index([userID, createdAt])
+  @@index([sellerID, createdAt])
+  @@index([status, createdAt])
+}
+
+model OrderItem {
+  id           String          @id @default(uuid())
+  orderID      String
+  accountID    String
+  itemName     String
+  itemSnapshot Json
+  unitPrice    Decimal         @db.Decimal(15, 2)
+  status       OrderItemStatus @default(pending_handover)
+  createdAt    DateTime        @default(now())
+
+  order   Order       @relation(fields: [orderID], references: [id], onDelete: Cascade)
+  account GameAccount @relation(fields: [accountID], references: [id])
+
+  review       Review?
+  handoverLogs HandoverLog[]
+
+  @@index([orderID])
+  @@index([accountID])
+}
+
+model HandoverLog {
+  id              String          @id @default(uuid())
+  orderID         String
+  orderItemID     String
+  accountID       String
+  handoverChannel HandoverChannel @default(zalo)
+  receiverContact String?
+  status          HandoverStatus  @default(pending)
+  handedByAdminID String?
+  handoverNote    String?
+  deliveredAt     DateTime?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  order         Order       @relation(fields: [orderID], references: [id], onDelete: Cascade)
+  orderItem     OrderItem   @relation(fields: [orderItemID], references: [id], onDelete: Cascade)
+  account       GameAccount @relation(fields: [accountID], references: [id])
+  handedByAdmin User?       @relation("AdminHandovers", fields: [handedByAdminID], references: [id])
+
+  @@index([orderID, createdAt])
+  @@index([status, createdAt])
+  @@index([handedByAdminID])
+}
+
+model Review {
+  id          String   @id @default(uuid())
+  orderItemID String   @unique
+  userID      String
+  sellerID    String?
+  accountID   String?
+  rating      Int
+  title       String?
+  content     String?
+  isVisible   Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  orderItem OrderItem    @relation(fields: [orderItemID], references: [id], onDelete: Cascade)
+  user      User         @relation(fields: [userID], references: [id])
+  account   GameAccount? @relation(fields: [accountID], references: [id])
+
+  @@index([accountID, createdAt])
+  @@index([sellerID, createdAt])
+  @@index([userID, createdAt])
+}
+
+model AuditLog {
+  id          String   @id @default(uuid())
+  actorUserID String?
+  action      String
+  entityType  String
+  entityID    String?
+  oldData     Json?
+  newData     Json?
+  note        String?
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime @default(now())
+
+  actor User? @relation("ActorAuditLogs", fields: [actorUserID], references: [id])
+
+  @@index([entityType, entityID, createdAt])
+  @@index([actorUserID, createdAt])
+}
+
+model Settings {
+  id      Int     @id @default(1)
+  logo    String?
+  banner  String?
+}
+
+model CardConfig {
+  id             Int      @id @default(autoincrement())
+
+  api_url        String
+  partner_id     String
+  partner_key    String
+
+  callback_url   String?
+
+  viettel_fee    Int?
+  vinaphone_fee  Int?
+  mobifone_fee   Int?
+  garena_fee     Int?
+  zing_fee       Int?
+  vnmobi_fee     Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model CardHistory {
+  id         Int @id @default(autoincrement())
+
+  user_id    String?
+
+  telco      String
+
+  amount     Int
+
+  code       String
+
+  serial     String
+
+  request_id String @unique
+
+  status     String @default("pending")
+
+  message    String?
+
+  createdAt DateTime @default(now())
+
+  updatedAt DateTime @updatedAt
+}

@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "CardHistory" ALTER COLUMN "user_id" SET DATA TYPE TEXT;

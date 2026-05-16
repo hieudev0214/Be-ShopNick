@@ -1,0 +1,15 @@
+{
+  "sqltools.connections": [
+    {
+      "ssh": "Disabled",
+      "previewLimit": 50,
+      "server": "localhost",
+      "port": 5435,
+      "driver": "PostgreSQL",
+      "name": "acc-game",
+      "password": "password_acc-game",
+      "database": "db_acc-game",
+      "username": "user_acc-game"
+    }
+  ]
+}
