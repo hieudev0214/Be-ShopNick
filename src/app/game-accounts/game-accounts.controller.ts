@@ -6,6 +6,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   UploadedFiles,
   UseInterceptors,
 } from '@nestjs/common';
@@ -54,13 +55,50 @@ export class GameAccountsController {
 
   // GET ALL
   @Get()
-  findAll() {
-    return this.gameAccountsService.findAll();
+  findAll(
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('groupId') groupId?: string,
+  ) {
+    return this.gameAccountsService.findAll(
+      Number(page) || 1,
+      Number(limit) || 10,
+      groupId,
+    );
+  }
+
+  @Get('product/:productCode')
+  findByProductCode(@Param('productCode') productCode: string) {
+    return this.gameAccountsService.findByProductCode(productCode);
+  }
+
+  // GET PRODUCTS BY GROUP SLUG
+  @Get('detail/:slug')
+  findBySlug(
+    @Param('slug') slug: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('minPrice') minPrice?: string,
+    @Query('maxPrice') maxPrice?: string,
+    @Query('sortBy') sortBy?: string,
+    @Query('order') order?: 'asc' | 'desc',
+  ) {
+    return this.gameAccountsService.findBySlug(
+      slug,
+      Number(page) || 1,
+      Number(limit) || 10,
+      minPrice ? Number(minPrice) : undefined,
+      maxPrice ? Number(maxPrice) : undefined,
+      sortBy,
+      order,
+    );
   }
 
   // GET ONE
   @Get(':id')
   findOne(@Param('id') id: string) {
+    console.log('ID:', id);
+
     return this.gameAccountsService.findOne(id);
   }
 
@@ -73,15 +111,7 @@ export class GameAccountsController {
         { name: 'images', maxCount: 20 },
       ],
       {
-        storage: diskStorage({
-          destination: './uploads',
-
-          filename: (req, file, callback) => {
-            const unique = Date.now() + '-' + Math.round(Math.random() * 1e9);
-
-            callback(null, unique + extname(file.originalname));
-          },
-        }),
+        storage: memoryStorage(),
       },
     ),
   )

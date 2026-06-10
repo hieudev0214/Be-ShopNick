@@ -8,6 +8,7 @@ import { CreateGameAccountDto } from './dto/create-game-account.dto';
 
 import { UpdateGameAccountDto } from './dto/update-game-account.dto';
 import { CloudinaryService } from 'src/modules/cloudinary/cloudinary.service';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class GameAccountsService {
@@ -24,10 +25,6 @@ export class GameAccountsService {
       images?: Express.Multer.File[];
     },
   ) {
-    // =========================
-    // THUMBNAIL
-    // =========================
-
     const thumbnailFile = files?.thumbnail?.[0];
 
     let thumbnailUrl: string | null = null;
@@ -38,11 +35,7 @@ export class GameAccountsService {
 
       thumbnailUrl = thumbnailUpload.secure_url;
     }
-
-    // =========================
     // IMAGES
-    // =========================
-
     const imageFiles = files?.images || [];
 
     const uploadedImages = await Promise.all(
@@ -55,21 +48,14 @@ export class GameAccountsService {
         };
       }),
     );
-
-    // =========================
     // SLUG
-    // =========================
-
     const slug =
       dto.slug ||
       slugify(dto.productName, {
         lower: true,
         strict: true,
       });
-
-    // =========================
     // CREATE
-    // =========================
 
     return this.prisma.gameAccount.create({
       data: {
@@ -137,25 +123,129 @@ export class GameAccountsService {
     });
   }
 
-  // GET ALL
-  async findAll() {
-    return this.prisma.gameAccount.findMany({
-      include: {
-        images: true,
+  // GET ALL + PAGINATION
+  async findAll(page = 1, limit = 10, groupId?: string) {
+    const skip = (page - 1) * limit;
 
-        group: true,
+    const where = groupId
+      ? {
+          groupID: groupId,
+        }
+      : {};
 
-        game: true,
+    const [products, total] = await Promise.all([
+      this.prisma.gameAccount.findMany({
+        where,
+
+        include: {
+          images: true,
+          group: true,
+          game: true,
+        },
+
+        orderBy: {
+          createdAt: 'desc',
+        },
+
+        skip,
+        take: limit,
+      }),
+
+      this.prisma.gameAccount.count({
+        where,
+      }),
+    ]);
+
+    return {
+      data: products,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
+  }
+
+  async findBySlug(
+    slug: string,
+    page = 1,
+    limit = 10,
+    minPrice?: number,
+    maxPrice?: number,
+    sortBy?: string,
+    order?: 'asc' | 'desc',
+  ) {
+    const where: Prisma.GameAccountWhereInput = {
+      group: {
+        slug,
       },
+    };
 
-      orderBy: {
-        createdAt: 'desc',
+    // FILTER GIÁ
+    if (minPrice !== undefined || maxPrice !== undefined) {
+      where.price = {};
+
+      if (minPrice !== undefined) {
+        where.price.gte = minPrice;
+      }
+
+      if (maxPrice !== undefined) {
+        where.price.lte = maxPrice;
+      }
+    }
+
+    // SORT
+    const orderBy: Prisma.GameAccountOrderByWithRelationInput =
+      sortBy && order
+        ? {
+            [sortBy]: order,
+          }
+        : {
+            createdAt: 'desc',
+          };
+
+    const [data, total] = await Promise.all([
+      this.prisma.gameAccount.findMany({
+        where,
+        orderBy,
+        skip: (page - 1) * limit,
+        take: limit,
+
+        include: {
+          group: true,
+          game: true,
+        },
+      }),
+
+      this.prisma.gameAccount.count({
+        where,
+      }),
+    ]);
+
+    return {
+      data,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
+  }
+
+  async findByProductCode(productCode: string) {
+    return this.prisma.gameAccount.findMany({
+      where: {
+        productCode,
+      },
+      include: {
+        game: true,
+        group: true,
       },
     });
   }
 
   // GET ONE
   async findOne(id: string) {
+    console.log('ID:', id);
+
     const account = await this.prisma.gameAccount.findUnique({
       where: {
         id,

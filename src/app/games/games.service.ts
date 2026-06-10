@@ -11,7 +11,7 @@ import { PrismaService } from 'src/common/prisma/prisma.service';
 export class GamesService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(dto: CreateGameDto) {
+  async create(dto: CreateGameDto, userId: string) {
     const existed = await this.prisma.game.findFirst({
       where: {
         OR: [{ name: dto.name }, { slug: dto.slug }],
@@ -24,6 +24,8 @@ export class GamesService {
 
     return this.prisma.game.create({
       data: {
+        createdById: userId,
+
         name: dto.name,
         slug: dto.slug,
         thumbnailUrl: dto.thumbnailUrl,
@@ -72,6 +74,17 @@ export class GamesService {
           createdAt: 'desc',
         },
       ],
+
+      include: {
+        createdBy: true,
+
+        _count: {
+          select: {
+            groups: true,
+            accounts: true,
+          },
+        },
+      },
     });
   }
 

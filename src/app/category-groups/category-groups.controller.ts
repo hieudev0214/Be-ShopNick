@@ -6,7 +6,9 @@ import {
   Param,
   Patch,
   Post,
+  Req,
   UploadedFile,
+  UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
 
@@ -18,6 +20,7 @@ import { CreateCategoryGroupDto } from './dto/create-category-group.dto';
 import { UpdateCategoryGroupDto } from './dto/update-category-group.dto';
 
 import { CloudinaryService } from 'src/modules/cloudinary/cloudinary.service';
+import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 
 @Controller()
 export class CategoryGroupsController {
@@ -27,22 +30,21 @@ export class CategoryGroupsController {
     private readonly cloudinaryService: CloudinaryService,
   ) {}
 
-  // ================= CREATE =================
   @Post('admin/category-groups')
+  @UseGuards(JwtAuthGuard)
   @UseInterceptors(FileInterceptor('thumbnailUrl'))
   async create(
     @UploadedFile() file: Express.Multer.File,
-
     @Body() dto: CreateCategoryGroupDto,
+    @Req() req: Request,
   ) {
-    // upload cloudinary
     if (file) {
       const result = await this.cloudinaryService.uploadImage(file);
 
       dto.thumbnailUrl = result.secure_url;
     }
 
-    return this.categoryGroupsService.create(dto);
+    return this.categoryGroupsService.create(dto, (req as any).user.userId);
   }
 
   // ================= UPDATE =================

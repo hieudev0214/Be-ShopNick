@@ -15,20 +15,11 @@ import { CategoryGroupStatus, GameStatus } from '@prisma/client';
 export class CategoryGroupsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(dto: CreateCategoryGroupDto) {
+  async create(dto: CreateCategoryGroupDto, userId: string) {
     const existed = await this.prisma.categoryGroup.findFirst({
       where: {
         gameID: dto.gameID,
-
-        OR: [
-          {
-            name: dto.name,
-          },
-
-          {
-            slug: dto.slug,
-          },
-        ],
+        OR: [{ name: dto.name }, { slug: dto.slug }],
       },
     });
 
@@ -40,16 +31,15 @@ export class CategoryGroupsService {
       data: {
         gameID: dto.gameID,
 
-        name: dto.name,
+        createdById: userId,
 
+        name: dto.name,
         slug: dto.slug,
 
         thumbnailUrl: dto.thumbnailUrl,
-
         priority: dto.priority || 0,
 
         description: dto.description,
-
         content: dto.content,
 
         status: dto.status ?? CategoryGroupStatus.active,
@@ -87,6 +77,11 @@ export class CategoryGroupsService {
       where: {
         id,
       },
+
+      include: {
+        game: true,
+        createdBy: true,
+      },
     });
   }
 
@@ -118,6 +113,9 @@ export class CategoryGroupsService {
 
       include: {
         game: true,
+
+        createdBy: true, // thêm dòng này
+
         _count: {
           select: {
             accounts: true,

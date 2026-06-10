@@ -66,15 +66,17 @@ export class CreateGameAccountDto {
   @Min(0)
   price: number;
 
+  @IsOptional()
   @Type(() => Number)
   @IsNumber()
   @Min(0)
-  salePrice: number;
+  salePrice?: number;
 
+  @IsOptional()
   @Type(() => Number)
   @IsInt()
   @Min(0)
-  discountPercent: number;
+  discountPercent?: number;
 
   // nhiều ảnh sản phẩm
   @IsOptional()

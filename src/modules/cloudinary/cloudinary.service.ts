@@ -1,4 +1,5 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
+
 import {
   v2 as cloudinary,
   UploadApiResponse,
@@ -13,6 +14,12 @@ export class CloudinaryService {
       api_key: process.env.CLOUDINARY_API_KEY,
       api_secret: process.env.CLOUDINARY_API_SECRET,
     });
+
+    console.log('CLOUDINARY CONFIG', {
+      cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+      api_key: process.env.CLOUDINARY_API_KEY,
+      api_secret_exists: !!process.env.CLOUDINARY_API_SECRET,
+    });
   }
 
   async uploadImage(
@@ -22,6 +29,14 @@ export class CloudinaryService {
     if (!file) {
       throw new InternalServerErrorException('File is required');
     }
+
+    console.log('UPLOAD FILE', {
+      fieldname: file.fieldname,
+      originalname: file.originalname,
+      mimetype: file.mimetype,
+      size: file.size,
+      hasBuffer: !!file.buffer,
+    });
 
     return new Promise<UploadApiResponse>((resolve, reject) => {
       const stream = cloudinary.uploader.upload_stream(
@@ -33,11 +48,18 @@ export class CloudinaryService {
           error: UploadApiErrorResponse | undefined,
           result: UploadApiResponse | undefined,
         ) => {
-          if (error || !result) {
+          if (error) {
+            console.log('CLOUDINARY REAL ERROR:', error);
+
+            return reject(new InternalServerErrorException(error.message));
+          }
+
+          if (!result) {
             return reject(
-              new InternalServerErrorException('Upload to Cloudinary failed'),
+              new InternalServerErrorException('Cloudinary result empty'),
             );
           }
+
           resolve(result);
         },
       );

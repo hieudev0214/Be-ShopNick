@@ -4,7 +4,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL") 
+  url      = env("DATABASE_URL")
 }
 
 enum UserRole {
@@ -182,9 +182,10 @@ model User {
   auditLogs            AuditLog[]          @relation("ActorAuditLogs")
   createdVerifications Verification[]
   createdWalletTxns    WalletTransaction[] @relation("AdminCreatedWalletTransactions")
-
-  walletTransactions WalletTransaction[]
-  reviews            Review[]
+  categoryGroups       CategoryGroup[]
+  games Game[] 
+  walletTransactions   WalletTransaction[]
+  reviews              Review[]
 
   @@index([status])
   @@index([role])
@@ -260,21 +261,27 @@ model Seller {
 }
 
 model Game {
-  id           String     @id @default(uuid())
-  name         String     @unique
-  slug         String     @unique
+  id           String  @id @default(uuid())
+  name         String  @unique
+  slug         String  @unique
   thumbnailUrl String?
   description  String?
 
-  priority     Int        @default(0)
+  priority Int @default(0)
 
-  status       GameStatus @default(active)
+  status GameStatus @default(active)
 
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
+  // người tạo
+  createdById String?
 
-  accounts     GameAccount[]
-  groups       CategoryGroup[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // relation
+  createdBy User? @relation(fields: [createdById], references: [id])
+
+  accounts GameAccount[]
+  groups   CategoryGroup[]
 
   @@index([status])
   @@index([priority])
@@ -282,44 +289,43 @@ model Game {
 }
 
 model CategoryGroup {
-  id          String   @id @default(uuid())
+  id             String   @id @default(uuid())
 
-  gameID      String
+  gameID         String
+  createdById    String?   // đổi thành optional
 
-  name        String
+  name           String
+  slug           String @unique
+  thumbnailUrl   String?
 
-  slug        String
+  priority       Int      @default(0)
+  description    String?
+  content        String?
 
-  thumbnailUrl String?
+  status         CategoryGroupStatus @default(active)
 
-  priority    Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
-  description String?
+  game           Game @relation(fields: [gameID], references: [id], onDelete: Cascade)
 
-  status      CategoryGroupStatus @default(active)
+  createdBy      User? @relation(fields: [createdById], references: [id])
 
-  content     String?
-
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  game        Game @relation(fields: [gameID], references: [id], onDelete: Cascade)
-
-  accounts    GameAccount[]
+  accounts       GameAccount[]
 
   @@unique([gameID, slug])
-
   @@index([gameID])
   @@index([priority])
+  @@index([createdById])
 }
 
 model GameAccount {
   id String @id @default(uuid())
 
   // relations
-  gameID String
-  groupID String?
-  sellerID String?
+  gameID      String
+  groupID     String?
+  sellerID    String?
   buyerUserID String?
 
   // product
@@ -331,7 +337,7 @@ model GameAccount {
 
   slug String @unique
 
-  thumbnailUrl String? 
+  thumbnailUrl String?
 
   description String?
 
@@ -590,49 +596,49 @@ model AuditLog {
 }
 
 model Settings {
-  id      Int     @id @default(1)
-  logo    String?
-  banner  String?
+  id     Int     @id @default(1)
+  logo   String?
+  banner String?
 }
 
 model CardConfig {
-  id             Int      @id @default(autoincrement())
+  id Int @id @default(autoincrement())
 
-  api_url        String
-  partner_id     String
-  partner_key    String
+  api_url     String
+  partner_id  String
+  partner_key String
 
-  callback_url   String?
+  callback_url String?
 
-  viettel_fee    Int?
-  vinaphone_fee  Int?
-  mobifone_fee   Int?
-  garena_fee     Int?
-  zing_fee       Int?
-  vnmobi_fee     Int?
+  viettel_fee   Int?
+  vinaphone_fee Int?
+  mobifone_fee  Int?
+  garena_fee    Int?
+  zing_fee      Int?
+  vnmobi_fee    Int?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
 model CardHistory {
-  id         Int @id @default(autoincrement())
+  id Int @id @default(autoincrement())
 
-  user_id    String?
+  user_id String?
 
-  telco      String
+  telco String
 
-  amount     Int
+  amount Int
 
-  code       String
+  code String
 
-  serial     String
+  serial String
 
   request_id String @unique
 
-  status     String @default("pending")
+  status String @default("pending")
 
-  message    String?
+  message String?
 
   createdAt DateTime @default(now())
 
