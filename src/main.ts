@@ -12,11 +12,14 @@ async function bootstrap() {
 
   const {
     PORT = 3000,
-    HOST = 'localhost',
     APP_PREFIX = '/api',
     APP_NAME = 'nestjs_app',
     NODE_ENV = 'development',
   } = process.env;
+
+  // SỬA TẠI ĐÂY: Nếu là môi trường production trên Render, ép HOST phải là '0.0.0.0'
+  const HOST =
+    NODE_ENV === 'production' ? '0.0.0.0' : process.env.HOST || 'localhost';
 
   app.useGlobalPipes(
     new ValidationPipe({
