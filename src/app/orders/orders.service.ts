@@ -16,7 +16,7 @@ export class OrdersService {
         'Không tìm thấy thông tin đăng nhập hợp lệ (UserId trống)!',
       );
     }
-    // Sử dụng $transaction để đảm bảo an toàn tuyệt đối cho dòng tiền
+
     return this.prisma.$transaction(async (tx) => {
       // 1. Kiểm tra tài khoản game muốn mua
       const account = await tx.gameAccount.findUnique({
@@ -46,21 +46,24 @@ export class OrdersService {
         throw new BadRequestException('Ví tiền của bạn hiện đang bị khóa!');
       }
 
-      // 3. Tính toán và kiểm tra số dư (Xử lý mượt mà kiểu dữ liệu Decimal)
-      const accountPrice = account.salePrice
-        ? account.salePrice
-        : account.price;
-      const priceNum = Number(accountPrice);
-      const balanceNum = Number(wallet.balance);
+      // ================= 🛠️ ĐÃ SỬA: ĐỌC GIÁ SỐ THỰC CHUẨN XÁC =================
+      const originalPrice = Number(account.price || 0);
+      const salePrice = Number(account.salePrice || 0);
 
-      if (balanceNum < priceNum) {
+      // Nếu salePrice có giá trị thực tế lớn hơn 0 thì áp dụng giá giảm, ngược lại dùng giá gốc
+      const finalPriceNum = salePrice > 0 ? salePrice : originalPrice;
+      const balanceNum = Number(wallet.balance || 0);
+
+      if (balanceNum < finalPriceNum) {
         throw new BadRequestException(
           'Số dư tài khoản không đủ, vui lòng nạp thêm tiền!',
         );
       }
 
-      const balanceAfter = wallet.balance.sub(priceNum);
-      const totalSpentAfter = wallet.totalSpent.add(priceNum);
+      // Thực hiện các phép tính logic số dư bằng hàm sub và add của Prisma Decimal
+      const balanceAfter = wallet.balance.sub(finalPriceNum);
+      const totalSpentAfter = wallet.totalSpent.add(finalPriceNum);
+      // =======================================================================
 
       // 4. Thực hiện TRỪ TIỀN ví người dùng
       await tx.wallet.update({
@@ -86,18 +89,17 @@ export class OrdersService {
           orderCode: 'DH_' + Date.now(),
           userID: userId,
           sellerID: account.sellerID,
-          totalAmount: accountPrice,
+          totalAmount: finalPriceNum, // Sử dụng giá trị cuối cùng đã tính toán
           currency: 'VND',
           paymentMethod: 'wallet',
           paymentStatus: 'paid',
-          status: 'completed', // Đánh dấu hoàn thành để giao nick ngay
+          status: 'completed',
           items: {
             create: {
               accountID: account.id,
               itemName: account.productName,
-              // Chụp ảnh (snapshot) toàn bộ thông tin tài khoản bao gồm cả tài khoản mật khẩu
               itemSnapshot: JSON.parse(JSON.stringify(account)),
-              unitPrice: accountPrice,
+              unitPrice: finalPriceNum, // Sử dụng giá trị cuối cùng đã tính toán
               status: 'completed',
             },
           },
@@ -111,8 +113,8 @@ export class OrdersService {
           userID: userId,
           txnCode: 'TXN_BUY_' + Date.now(),
           txnType: 'purchase',
-          direction: 'debit', // debit = trừ tiền
-          amount: accountPrice,
+          direction: 'debit',
+          amount: finalPriceNum, // Sử dụng giá trị cuối cùng đã tính toán
           balanceBefore: wallet.balance,
           balanceAfter: balanceAfter,
           relatedType: 'order',
