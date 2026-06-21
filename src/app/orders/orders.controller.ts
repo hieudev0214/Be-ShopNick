@@ -16,6 +16,8 @@ export class OrdersController {
     summary: 'Khách hàng thực hiện mua tài khoản game bằng số dư ví',
   })
   create(@Req() req: any, @Body() createOrderDto: CreateOrderDto) {
-    return this.ordersService.createOrder(req.user.id, createOrderDto);
+    const userId = req.user?.id || req.user?.sub || req.user?.userId;
+
+    return this.ordersService.createOrder(userId, createOrderDto);
   }
 }

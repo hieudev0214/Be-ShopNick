@@ -11,6 +11,11 @@ export class OrdersService {
   constructor(private readonly prisma: PrismaService) {}
 
   async createOrder(userId: string, dto: CreateOrderDto) {
+    if (!userId) {
+      throw new BadRequestException(
+        'Không tìm thấy thông tin đăng nhập hợp lệ (UserId trống)!',
+      );
+    }
     // Sử dụng $transaction để đảm bảo an toàn tuyệt đối cho dòng tiền
     return this.prisma.$transaction(async (tx) => {
       // 1. Kiểm tra tài khoản game muốn mua
