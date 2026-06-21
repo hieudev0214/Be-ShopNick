@@ -150,18 +150,16 @@ export class CardService {
     // TRƯỜNG HỢP: THẺ ĐÚNG (STATUS = 1)
     // =====================================
     if (status == 1) {
-      // Cập nhật trạng thái thẻ thành công trong DB
+      // 1. Cập nhật trạng thái thẻ thành công trong DB
       await this.prisma.cardHistory.update({
-        where: {
-          request_id,
-        },
+        where: { request_id },
         data: {
           status: 'success',
           message: message || 'Nạp thẻ thành công',
         },
       });
 
-      // Tìm ví (Wallet) của người dùng
+      // 2. Tìm ví (Wallet) của người dùng
       const wallet = await this.prisma.wallet.findFirst({
         where: {
           userID: card.user_id!,
@@ -172,21 +170,23 @@ export class CardService {
         throw new BadRequestException('Wallet không tồn tại');
       }
 
-      const balanceBefore = Number(wallet.balance);
-      const balanceAfter = balanceBefore + Number(value);
+      // 🔥 BƯỚC SỬA: Sử dụng trực tiếp các hàm toán học toán tử của Prisma Decimal để tính tiền
+      const balanceBefore = wallet.balance;
+      const balanceAfter = wallet.balance.add(Number(value)); // Dùng .add() thay vì dấu +
+      const totalDepositAfter = wallet.totalDeposit.add(Number(value)); // Dùng .add()
 
-      // Cộng tiền vào ví và cập nhật tổng nạp (totalDeposit)
+      // 3. Cộng tiền vào ví và cập nhật tổng nạp (totalDeposit)
       await this.prisma.wallet.update({
         where: {
           id: wallet.id,
         },
         data: {
-          balance: balanceAfter,
-          totalDeposit: Number(wallet.totalDeposit) + Number(value),
+          balance: balanceAfter, // Gán object Decimal mới tính vào
+          totalDeposit: totalDepositAfter,
         },
       });
 
-      // Tạo lịch sử biến động số dư (WalletTransaction)
+      // 4. Tạo lịch sử biến động số dư (WalletTransaction)
       await this.prisma.walletTransaction.create({
         data: {
           walletID: wallet.id,
@@ -195,8 +195,8 @@ export class CardService {
           txnType: 'deposit',
           direction: 'credit',
           amount: Number(value),
-          balanceBefore,
-          balanceAfter,
+          balanceBefore: balanceBefore, // Đảm bảo đồng bộ kiểu dữ liệu Decimal
+          balanceAfter: balanceAfter,
           relatedType: 'deposit_request',
           relatedID: request_id,
           note: `Nạp thẻ ${card.telco} thành công`,
