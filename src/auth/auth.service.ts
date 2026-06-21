@@ -65,7 +65,17 @@ export class AuthService {
         avatarUrl: dto.avatarUrl,
         zaloPhone: dto.zaloPhone,
         zaloName: dto.zaloName,
-      },
+
+        // 🔥 ĐẶT CHÍNH XÁC VÀO ĐÂY (NẰM TRONG DATA)
+        wallet: {
+          create: {
+            balance: 0,
+            totalDeposit: 0,
+            totalSpent: 0,
+            status: 'active',
+          },
+        },
+      }, // <- Dấu đóng ngoặc nhọn của data và hàm create nằm ở đây!
     });
 
     const tokens = await this.generateTokens(user.id, user.role);
