@@ -16,6 +16,7 @@ import { GamesModule } from './games/games.module';
 import { SettingsModule } from './settings/settings.module';
 import { CardModule } from './card/card.module';
 import { CategoryGroupsModule } from './category-groups/category-groups.module';
+import { OrdersModule } from './orders/orders.module';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { CategoryGroupsModule } from './category-groups/category-groups.module';
     SettingsModule,
     CardModule,
     CategoryGroupsModule,
+    OrdersModule,
   ],
   controllers: [AppController],
   providers: [
