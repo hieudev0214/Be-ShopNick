@@ -105,32 +105,25 @@ export class CategoryGroupsService {
 
   async adminList(gameID?: string) {
     return this.prisma.categoryGroup.findMany({
-      where: gameID
-        ? {
-            gameID,
-          }
-        : undefined,
+      where: gameID ? { gameID } : undefined,
 
       include: {
         game: true,
-
-        createdBy: true, // thêm dòng này
-
+        createdBy: true,
         _count: {
           select: {
-            accounts: true,
+            accounts: true, // Tổng số nick
+          },
+        },
+        // Thêm đoạn này để lấy trạng thái các nick thuộc group
+        accounts: {
+          select: {
+            status: true,
           },
         },
       },
 
-      orderBy: [
-        {
-          priority: 'desc',
-        },
-        {
-          createdAt: 'desc',
-        },
-      ],
+      orderBy: [{ priority: 'desc' }, { createdAt: 'desc' }],
     });
   }
 
