@@ -266,12 +266,21 @@ export class CardService {
   }
 
   // =====================================
-  // HISTORIES (LẤY DANH SÁCH LỊCH SỬ)
+  // HISTORIES (LẤY DANH SÁCH LỊCH SỬ KÈM TÊN USER)
   // =====================================
   async histories() {
     return await this.prisma.cardHistory.findMany({
       orderBy: {
         createdAt: 'desc',
+      },
+      // 💡 BỔ SUNG ĐOẠN NÀY: Để lấy thêm thông tin từ bảng liên kết User
+      include: {
+        user: {
+          select: {
+            username: true, // Hoặc fullName: true tùy theo cột trong schema của bạn
+            email: true,
+          },
+        },
       },
     });
   }
