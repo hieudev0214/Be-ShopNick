@@ -150,38 +150,61 @@ export class CardService {
     // TRƯỜNG HỢP: THẺ ĐÚNG (STATUS = 1)
     // =====================================
     if (status == 1) {
-      // 1. Cập nhật trạng thái thẻ thành công trong DB
+      // 1. LẤY BẢNG CẤU HÌNH PHÍ TỪ ADMIN
+      const config = await this.prisma.cardConfig.findFirst();
+
+      // Xác định mức phí dựa trên loại thẻ (ép về viết thường để match với telco gửi lên)
+      const currentTelco = card.telco ? card.telco.toLowerCase() : '';
+      let feePercent = 20; // Mức phí dự phòng nếu không tìm thấy cấu hình
+
+      if (config) {
+        if (currentTelco.includes('viettel')) {
+          feePercent = config.viettel_fee ?? 20;
+        } else if (currentTelco.includes('vina')) {
+          feePercent = config.vinaphone_fee ?? 20;
+        } else if (currentTelco.includes('mobi')) {
+          feePercent = config.mobifone_fee ?? 20;
+        } else if (currentTelco.includes('zing')) {
+          feePercent = config.zing_fee ?? 20;
+        } else if (currentTelco.includes('garena')) {
+          feePercent = config.garena_fee ?? 20;
+        } else if (currentTelco.includes('vnmobi')) {
+          feePercent = config.vnmobi_fee ?? 20;
+        }
+      }
+
+      // 2. TÍNH TOÁN SỐ TIỀN THỰC CỘNG (Mệnh giá gốc - Phần trăm chiết khấu)
+      const originValue = Number(value); // 10000
+      const realMoneyToClick = originValue - originValue * (feePercent / 100); // 10000 - 2000 = 8000
+
+      // Cập nhật trạng thái thẻ thành công trong DB
       await this.prisma.cardHistory.update({
         where: { request_id },
         data: {
           status: 'success',
-          message: message || 'Nạp thẻ thành công',
+          message: message || `Nạp thẻ thành công (Chiết khấu ${feePercent}%)`,
         },
       });
 
-      // 2. Tìm ví (Wallet) của người dùng
+      // Tìm ví (Wallet) của người dùng
       const wallet = await this.prisma.wallet.findFirst({
-        where: {
-          userID: card.user_id!,
-        },
+        where: { userID: card.user_id! },
       });
 
       if (!wallet) {
         throw new BadRequestException('Wallet không tồn tại');
       }
 
-      // 🔥 BƯỚC SỬA: Sử dụng trực tiếp các hàm toán học toán tử của Prisma Decimal để tính tiền
+      // Đưa số tiền thực nhận sau khi trừ phí (realMoneyToClick) vào hàm tính toán ví
       const balanceBefore = wallet.balance;
-      const balanceAfter = wallet.balance.add(Number(value)); // Dùng .add() thay vì dấu +
-      const totalDepositAfter = wallet.totalDeposit.add(Number(value)); // Dùng .add()
+      const balanceAfter = wallet.balance.add(realMoneyToClick);
+      const totalDepositAfter = wallet.totalDeposit.add(realMoneyToClick);
 
       // 3. Cộng tiền vào ví và cập nhật tổng nạp (totalDeposit)
       await this.prisma.wallet.update({
-        where: {
-          id: wallet.id,
-        },
+        where: { id: wallet.id },
         data: {
-          balance: balanceAfter, // Gán object Decimal mới tính vào
+          balance: balanceAfter,
           totalDeposit: totalDepositAfter,
         },
       });
@@ -194,12 +217,12 @@ export class CardService {
           txnCode: 'CARD_' + Date.now(),
           txnType: 'deposit',
           direction: 'credit',
-          amount: Number(value),
-          balanceBefore: balanceBefore, // Đảm bảo đồng bộ kiểu dữ liệu Decimal
+          amount: realMoneyToClick, // Log đúng số tiền 8k thực nhận vào lịch sử biến động
+          balanceBefore: balanceBefore,
           balanceAfter: balanceAfter,
           relatedType: 'deposit_request',
           relatedID: request_id,
-          note: `Nạp thẻ ${card.telco} thành công`,
+          note: `Nạp thẻ ${card.telco} thành công (Nhận ${realMoneyToClick}đ sau khi trừ ${feePercent}% phí)`,
         },
       });
     }
