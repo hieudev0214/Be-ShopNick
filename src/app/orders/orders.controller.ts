@@ -3,6 +3,7 @@ import { ApiBearerAuth, ApiTags, ApiOperation } from '@nestjs/swagger';
 import { OrdersService } from './orders.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
+import { CreateMultipleOrderDto } from './dto/create-multiple-order.dto';
 
 @ApiTags('Quản Lý Đơn Hàng Mua Acc')
 @ApiBearerAuth()
@@ -28,5 +29,22 @@ export class OrdersController {
     // req.user.id lấy từ mã Token sau khi qua JwtAuthGuard
     const userId = req.user.id;
     return this.ordersService.getHistory(userId);
+  }
+
+  @Post('multiple')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({
+    summary:
+      'Khách hàng thực hiện mua NHIỀU tài khoản game cùng lúc bằng số dư ví',
+  })
+  createMultiple(
+    @Req() req: any,
+    @Body() createMultipleOrderDto: CreateMultipleOrderDto,
+  ) {
+    const userId = req.user?.id || req.user?.sub || req.user?.userId;
+    return this.ordersService.createMultipleOrder(
+      userId,
+      createMultipleOrderDto,
+    );
   }
 }
