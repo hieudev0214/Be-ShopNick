@@ -279,6 +279,11 @@ export class OrdersService {
         success: true,
         message: `Mua thành công liền lúc ${accounts.length} tài khoản!`,
         orderCode: order.orderCode,
+        // 🛠️ BỔ SUNG: Trả thêm thông tin tài khoản, mật khẩu về cho Frontend bốc ra popup
+        purchasedAccounts: accounts.map((acc) => ({
+          productName: acc.productName,
+          accountInfo: acc.accountInfo,
+        })),
       };
     });
   }
