@@ -159,6 +159,21 @@ export class OrdersService {
     });
   }
 
+  async getAllSoldAccountsByAdmin() {
+    // Tìm tất cả tài khoản game có status là 'sold' (Đã bán)
+    return this.prisma.gameAccount.findMany({
+      where: {
+        status: 'sold',
+      },
+      include: {
+        game: true, // Lấy kèm thông tin danh mục game (Free Fire, Đột Kích...) nếu cần hiển thị
+      },
+      orderBy: {
+        updatedAt: 'desc', // Sắp xếp theo tài khoản nào vừa bán xong xếp lên đầu (nếu schema có cột này)
+      },
+    });
+  }
+
   async createMultipleOrder(userId: string, dto: CreateMultipleOrderDto) {
     if (!userId) {
       throw new BadRequestException(

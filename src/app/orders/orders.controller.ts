@@ -30,6 +30,16 @@ export class OrdersController {
     return this.ordersService.getHistory(userId);
   }
 
+  @Get('admin/sold-accounts')
+  @UseGuards(JwtAuthGuard) // Bảo vệ endpoint yêu cầu phải đăng nhập Token
+  @ApiOperation({
+    summary:
+      '[ADMIN] Xem toàn bộ danh sách tài khoản game đã bị mua trên hệ thống',
+  })
+  async getAllSoldAccounts() {
+    return this.ordersService.getAllSoldAccountsByAdmin();
+  }
+
   @Post('multiple')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({
