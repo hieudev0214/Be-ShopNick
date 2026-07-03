@@ -133,9 +133,13 @@ export class OrdersService {
   }
 
   async getHistory(userId: string) {
+    if (!userId) {
+      return [];
+    }
+
     return this.prisma.order.findMany({
       where: {
-        userID: userId,
+        userID: userId, // Chắc chắn có giá trị cụ thể, không lo bị quét toàn bộ DB nữa
         paymentStatus: 'paid',
       },
       include: {

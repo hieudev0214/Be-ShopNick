@@ -26,8 +26,7 @@ export class OrdersController {
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Lịch sử tài khoản game đã mua của người dùng' })
   async getPurchaseHistory(@Req() req: any) {
-    // req.user.id lấy từ mã Token sau khi qua JwtAuthGuard
-    const userId = req.user.id;
+    const userId = req.user?.id || req.user?.sub || req.user?.userId;
     return this.ordersService.getHistory(userId);
   }
 
