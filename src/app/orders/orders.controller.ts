@@ -1,4 +1,4 @@
-import { Body, Controller, Post, UseGuards, Req } from '@nestjs/common';
+import { Body, Controller, Post, UseGuards, Req, Get } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags, ApiOperation } from '@nestjs/swagger';
 import { OrdersService } from './orders.service';
 import { CreateOrderDto } from './dto/create-order.dto';
@@ -19,5 +19,14 @@ export class OrdersController {
     const userId = req.user?.id || req.user?.sub || req.user?.userId;
 
     return this.ordersService.createOrder(userId, createOrderDto);
+  }
+
+  @Get('history')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Lịch sử tài khoản game đã mua của người dùng' })
+  async getPurchaseHistory(@Req() req: any) {
+    // req.user.id lấy từ mã Token sau khi qua JwtAuthGuard
+    const userId = req.user.id;
+    return this.ordersService.getHistory(userId);
   }
 }

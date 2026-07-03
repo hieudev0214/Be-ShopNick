@@ -130,4 +130,27 @@ export class OrdersService {
       };
     });
   }
+
+  async getHistory(userId: string) {
+    return this.prisma.order.findMany({
+      where: {
+        userID: userId,
+        paymentStatus: 'paid',
+      },
+      include: {
+        items: {
+          include: {
+            account: {
+              include: {
+                game: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+  }
 }
