@@ -43,15 +43,17 @@ Tạo một file .env tại thư mục gốc của dự án (Tham khảo cấu t
 
 ### 5. Khởi tạo Cơ sở dữ liệu với Prisma
 
-# Tạo mã nguồn Prisma Client
-
 npx prisma generate
 
+```bash
 # Chạy migration để đồng bộ bảng vào Database
+```
 
 npx prisma migrate dev
 
-# Đẩy trực tiếp cấu trúc schema vào DB (Phương án thay thế nhanh)
+```bash
+# Đẩy trực tiếp cấu trúc schema vào DB
+```
 
 npx prisma db push
 
