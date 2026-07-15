@@ -37,8 +37,7 @@ npm install
 docker run --name pg_acc-game -e POSTGRES_USER=user_acc-game -e POSTGRES_PASSWORD=password_acc-game -e POSTGRES_DB=db_acc-game -p 5435:5432 -d postgres
 
 ### 4. Cấu hình biến môi trường
-DATABASE_URL="postgresql://user_acc-game:password_acc-game@localhost:5435/db_acc-game?schema=public"
-JWT_SECRET="dien_ma_bi_mat_jwt_cua_ban_tai_day"
+Tạo một file .env tại thư mục gốc của dự án (Tham khảo cấu trúc từ file .env.example) và điền thông số cấu hình thực tế
 
 ### 5. Khởi tạo Cơ sở dữ liệu với Prisma
 # Tạo mã nguồn Prisma Client
