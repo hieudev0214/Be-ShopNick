@@ -26,32 +26,39 @@ Toàn bộ hệ thống API đã được tài liệu hóa trực quan bằng Sw
 
 ### 1. Bản sao mã nguồn (Clone project)
 
-```bash
 git clone [https://github.com/hieudev0214/Be-ShopNick.git](https://github.com/hieudev0214/Be-ShopNick.git)
 cd Be-ShopNick
 
 ### 2. Cài đặt các thư viện phụ thuộc
+
 npm install
 
 ### 3. Thiết lập Cơ sở dữ liệu (Qua Docker)
+
 docker run --name pg_acc-game -e POSTGRES_USER=user_acc-game -e POSTGRES_PASSWORD=password_acc-game -e POSTGRES_DB=db_acc-game -p 5435:5432 -d postgres
 
 ### 4. Cấu hình biến môi trường
+
 Tạo một file .env tại thư mục gốc của dự án (Tham khảo cấu trúc từ file .env.example) và điền thông số cấu hình thực tế
 
 ### 5. Khởi tạo Cơ sở dữ liệu với Prisma
+
 # Tạo mã nguồn Prisma Client
+
 npx prisma generate
 
 # Chạy migration để đồng bộ bảng vào Database
+
 npx prisma migrate dev
 
 # Đẩy trực tiếp cấu trúc schema vào DB (Phương án thay thế nhanh)
+
 npx prisma db push
 
 ### 6. Khởi chạy Ứng dụng
+
 npm run start:dev
 
 ### 7. Kiểm tra dữ liệu trực quan
+
 npx prisma studio
-```
