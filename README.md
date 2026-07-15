@@ -31,11 +31,15 @@ cd Be-ShopNick
 
 ### 2. Cài đặt các thư viện phụ thuộc
 
+```bash
 npm install
+```
 
 ### 3. Thiết lập Cơ sở dữ liệu (Qua Docker)
 
+```bash
 docker run --name pg_acc-game -e POSTGRES_USER=user_acc-game -e POSTGRES_PASSWORD=password_acc-game -e POSTGRES_DB=db_acc-game -p 5435:5432 -d postgres
+```
 
 ### 4. Cấu hình biến môi trường
 
@@ -43,24 +47,26 @@ Tạo một file .env tại thư mục gốc của dự án (Tham khảo cấu t
 
 ### 5. Khởi tạo Cơ sở dữ liệu với Prisma
 
+```bash
 npx prisma generate
-
-```bash
-# Chạy migration để đồng bộ bảng vào Database
 ```
 
+```bash
 npx prisma migrate dev
-
-```bash
-# Đẩy trực tiếp cấu trúc schema vào DB
 ```
 
+```bash
 npx prisma db push
+```
 
 ### 6. Khởi chạy Ứng dụng
 
+```bash
 npm run start:dev
+```
 
 ### 7. Kiểm tra dữ liệu trực quan
 
+```bash
 npx prisma studio
+```
